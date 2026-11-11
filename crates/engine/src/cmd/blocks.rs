@@ -33,7 +33,9 @@ pub fn specs() -> Vec<CommandSpec> {
             .menu(&["Draw", "Block", "Make..."])
             .alias(&["b", "bmake"])
             .params("{name, base: [x,y], handles?, keep?: \"convert\"|\"retain\"|\"delete\" (default \"convert\"), description? (up to 255 characters, one line), annotative?}")
-            .interactive(|_| Ok(Box::new(BlockM::default()))),
+            // Started by a LISP routine's `command`, BLOCK runs as -BLOCK (no dialog default to
+            // stand in for), so it erases the selection.
+            .interactive(|s| Ok(Box::new(BlockM { dash: s.lisp_running(), ..BlockM::default() }))),
         // -BLOCK erases the selected objects once the block is defined.
         CommandSpec::new("-block", "Create Block", run_dash_block)
             .alias(&["-b"])

@@ -62,3 +62,16 @@ fn block_and_the_json_forms_keep_their_defaults() {
     assert_eq!(references(&s), 2);
     assert_eq!(s.doc().unwrap().model.len(), 3, "A and C references, E's retained line");
 }
+
+/// #2990: a LISP routine's `command` runs BLOCK as -BLOCK, so the selection is erased (a routine
+/// that then inserts the block gets one copy, not two). Typed, BLOCK still converts it (above).
+#[test]
+fn block_from_lisp_command_erases_the_selection() {
+    let mut s = Session::new();
+    let code = "(command \"_.line\" (list 0 0) (list 10 0) \"\") (command \"_.block\" \"B1\" (list 0 0) (ssget \"_L\") \"\") (ssget \"_X\")";
+    let r = s.execute("lisp", &json!({ "code": code })).unwrap();
+    assert_eq!(r["value"], "nil", "{r}");
+    assert!(s.running.is_none());
+    assert_eq!(s.doc().unwrap().model.len(), 0, "the line is erased, not converted");
+    assert_eq!(s.doc().unwrap().block("B1").unwrap().entities.len(), 1);
+}

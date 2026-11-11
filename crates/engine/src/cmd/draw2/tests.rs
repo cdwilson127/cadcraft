@@ -896,6 +896,25 @@ fn wipeout_json_and_command_line() {
     assert_eq!(s.doc().unwrap().header.i64("WIPEOUTFRAME", 0), 1);
 }
 
+/// #2993: WIPEOUT's Polyline option takes the polyline as a selection set from a LISP routine,
+/// as `(command "_.wipeout" "_P" ss "_Y")` gives it.
+#[test]
+fn wipeout_polyline_takes_a_selection_set_from_lisp() {
+    let mut s = Session::new();
+    let square = "(command \"_.pline\" (list 0 0) (list 10 0) (list 10 10) (list 0 10) \"_c\")";
+    let code = format!("{square} (command \"_.wipeout\" \"_P\" (ssget \"_L\") \"_Y\")");
+    let r = s.execute("lisp", &json!({"code": code})).unwrap();
+    assert!(r.get("error").is_none(), "{r}");
+    assert!(s.running.is_none(), "{}", s.prompt_text());
+    assert_eq!(kinds(&s), vec!["Wipeout"], "the polyline became a wipeout and was erased (_Y)");
+    // No keeps the polyline.
+    let mut s = Session::new();
+    let code = format!("{square} (command \"_.wipeout\" \"_P\" (ssget \"_L\") \"_N\")");
+    s.execute("lisp", &json!({"code": code})).unwrap();
+    assert!(s.running.is_none(), "{}", s.prompt_text());
+    assert_eq!(kinds(&s), vec!["Polyline", "Wipeout"]);
+}
+
 // ---------------- XLINE ----------------
 
 fn xline_dir(k: &EntityKind) -> (Vec2, Vec2) {

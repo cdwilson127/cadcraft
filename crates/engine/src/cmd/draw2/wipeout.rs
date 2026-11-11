@@ -72,8 +72,14 @@ impl Interactive for WipeoutM {
     }
     fn input(&mut self, s: &mut Session, i: Input) -> Result<Step> {
         match (self.phase, i) {
-            (1, Input::Point(p)) => {
-                let h = curves::pick_at(s, p).ok_or_else(|| other("*Invalid selection*"))?;
+            // A pick, or the first object of a selection set or entity name a routine gives.
+            (1, i @ (Input::Point(_) | Input::Pick(_))) => {
+                let h = match i {
+                    Input::Point(p) => curves::pick_at(s, p),
+                    Input::Pick(hs) => hs.first().copied(),
+                    _ => None,
+                };
+                let h = h.ok_or_else(|| other("*Invalid selection*"))?;
                 let e = curves::entity(s, h)?;
                 if !matches!(&e.kind, EntityKind::LwPolyline(pl) if pl.closed) {
                     return Err(other("Select a closed polyline."));
